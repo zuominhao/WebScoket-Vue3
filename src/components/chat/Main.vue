@@ -1,13 +1,18 @@
 <template>
 
     <div style="height: 30px; width: 250px;border: 0px solid black">
-        <el-input
+        <div>
+            <el-input
             v-model="url"
             type="text"
             placeholder="示例:ws://192.168.158.159:9002"
             @keydown.native.enter="connectWebSocket()"
         ></el-input>
+        </div>
+
+        <button @click="disconnectWebSocket()">断开连接</button>
     </div>
+
     <div ref="messageContainer"
          style="height: 500px; width: 900px; overflow-y: auto; margin: 0 auto; border: 1px solid black">
         <div
@@ -40,42 +45,44 @@ export default {
             websocket: null,
             textarea: "",
             list: [],
-            url:""
+            url:"ws://192.168.158.159:9002"
         };
     },
     methods: {
         connectWebSocket() {
            this.websocket = new window.WebSocket(this.url);
-
             this.websocket.onopen = () => {
                 console.log('WebSocket 连接已建立');
                 this.$alert('WebSocket 连接已建立', {
                     confirmButtonText: '确定',
-                    callback: action => {
-                        
-                    }
                 })
             };
-
             this.websocket.onmessage = (event) => {
                 let message = JSON.parse(event.data);
                 this.list.push({text: message, align: "left"});
                 this.scrollToBottom();
             };
-
             this.websocket.onerror = (error) => {
                 console.error('WebSocket 错误:', error);
             };
-
             this.websocket.onclose = () => {
                 console.log('WebSocket 连接已关闭');
-                this.$alert('WebSocket 连接已关闭', {
+                this.$alert('对方已关闭和您的WebSocket 连接', {
                     confirmButtonText: '确定',
-                    callback: action => {
-                        
-                    }
                 })
             };
+        },
+
+        disconnectWebSocket(){
+            if(this.websocket){
+                this.websocket.close();
+                console.log("websocket 已断开");
+                this.$alert('您已关闭和对方的WebSocket 连接', {
+                    confirmButtonText: '确定',
+                })
+            }else{
+                console.warn("websocket 不存在");
+            }
         },
 
         sendMessage() {
@@ -88,11 +95,8 @@ export default {
                 this.list.push({text: this.textarea, align: "right"});
                 this.textarea = "";
                 console.log("text >>> ", data);
-
-                // 发送消息给后端
                 this.websocket.send(JSON.stringify(data));
             }
-
             this.$nextTick(() => {
                 this.scrollToBottom();
             });
